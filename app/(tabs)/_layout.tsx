@@ -1,6 +1,7 @@
 import { Tabs, Redirect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { Map, Plus, User, Search } from 'lucide-react-native';
+import { Map, Plus, User, Search, MapPin } from 'lucide-react-native';
+import { Platform, StatusBar } from 'react-native';
 
 export default function TabLayout() {
   const { user, loading } = useAuth();
@@ -18,14 +19,26 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          paddingBottom: 4,
-          paddingTop: 4,
-          height: 60,
+          borderTopWidth: 0,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+          paddingTop: 8,
+          height: Platform.OS === 'ios' ? 88 : 68,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 10,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
       }}
     >
@@ -34,7 +47,7 @@ export default function TabLayout() {
         options={{
           title: 'Map',
           tabBarIcon: ({ size, color }) => (
-            <Map size={size} color={color} />
+            <MapPin size={size} color={color} />
           ),
         }}
       />
