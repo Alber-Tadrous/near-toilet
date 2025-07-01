@@ -6,6 +6,7 @@ const config = getDefaultConfig(__dirname);
 // Ensure resolver.alias exists and place our custom aliases first
 config.resolver.alias = {
   'react-native-maps': path.resolve(__dirname, 'web-stubs/react-native-maps.js'),
+  'react-native-maps/lib/MapMarkerNativeComponent.js': path.resolve(__dirname, 'web-stubs/empty.js'),
   'react-native-maps/src/MapMarkerNativeComponent.ts': path.resolve(__dirname, 'web-stubs/empty.js'),
   'react-native-maps/src/MapMarkerNativeComponent': path.resolve(__dirname, 'web-stubs/empty.js'),
   'react-native/Libraries/Utilities/codegenNativeCommands': path.resolve(__dirname, 'web-stubs/empty.js'),
