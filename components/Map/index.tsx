@@ -1,24 +1,13 @@
-import React, { forwardRef, useMemo } from 'react';
-import { Platform, View, StyleSheet } from 'react-native';
+import React, { forwardRef } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { MapProps, MapRef } from '@/types/map';
 import { MapProvider, useMapContext } from './MapProvider';
 import { MapErrorBoundary } from './MapErrorBoundary';
 import { MapLoadingOverlay } from './MapLoadingOverlay';
+import { MapImplementation } from './MapImplementation';
 
 const MapComponent = forwardRef<MapRef, MapProps>((props, ref) => {
-  const { isLoading, error, platform } = useMapContext();
-  
-  const MapImplementation = useMemo(() => {
-    if (platform === 'web') {
-      // Only import WebMap when needed for web platform
-      const { WebMap } = require('./WebMap');
-      return WebMap;
-    } else {
-      // Only import NativeMap when needed for native platforms
-      const { NativeMap } = require('./NativeMap');
-      return NativeMap;
-    }
-  }, [platform]);
+  const { isLoading, error } = useMapContext();
 
   return (
     <View style={[styles.container, props.style]}>

@@ -1,0 +1,1 @@
+export { WebMap as MapImplementation } from './WebMap';

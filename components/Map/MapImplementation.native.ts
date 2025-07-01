@@ -1,0 +1,1 @@
+export { NativeMap as MapImplementation } from './NativeMap';
