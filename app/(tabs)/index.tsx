@@ -14,7 +14,7 @@ import * as Location from 'expo-location';
 import { useAuth } from '@/context/AuthContext';
 import { restroomService } from '@/lib/restrooms';
 import { Database } from '@/types/database';
-import { MapPin, Navigation, RefreshCw, Filter, List } from 'lucide-react-native';
+import { MapPin, Navigation, RefreshCw, ListFilter as Filter, List } from 'lucide-react-native';
 import { Map, MapRef, MapRegion, MapMarker } from '@/components/Map';
 import { RestroomCard } from '@/components/RestroomCard';
 
