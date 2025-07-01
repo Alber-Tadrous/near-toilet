@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { restroomService } from '@/lib/restrooms';
 import { Database } from '@/types/database';
-import { Search, MapPin, Filter, SlidersHorizontal, X } from 'lucide-react-native';
+import { Search, MapPin, ListFilter as Filter, SlidersHorizontal, X } from 'lucide-react-native';
 import { RestroomCard } from '@/components/RestroomCard';
 
 type Restroom = Database['public']['Tables']['restrooms']['Row'];

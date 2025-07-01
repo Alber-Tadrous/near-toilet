@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { MapPin, Star, Clock, Accessibility, AlertTriangle, Users, Wifi } from 'lucide-react-native';
+import { MapPin, Star, Clock, Accessibility, TriangleAlert as AlertTriangle, Users, Wifi } from 'lucide-react-native';
 import { Database } from '@/types/database';
 
 type Restroom = Database['public']['Tables']['restrooms']['Row'];
