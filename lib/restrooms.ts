@@ -8,6 +8,8 @@ type ReviewInsert = Database['public']['Tables']['reviews']['Insert'];
 
 export const restroomService = {
   async getNearbyRestrooms(latitude: number, longitude: number, radius: number = 5000) {
+    console.log('Getting nearby restrooms:', { latitude, longitude, radius });
+    
     const { data, error } = await supabase
       .rpc('get_nearby_restrooms', {
         lat: latitude,
@@ -16,10 +18,13 @@ export const restroomService = {
       });
 
     if (error) throw error;
+    console.log('Found restrooms:', data?.length || 0);
     return data as Restroom[];
   },
 
   async getRestroom(id: string) {
+    console.log('Getting restroom:', id);
+    
     const { data, error } = await supabase
       .from('restrooms')
       .select(`
@@ -39,21 +44,36 @@ export const restroomService = {
       .single();
 
     if (error) throw error;
+    console.log('Retrieved restroom:', data);
     return data;
   },
 
   async createRestroom(restroom: RestroomInsert) {
+    console.log('Creating restroom:', restroom);
+    
+    // Validate required fields
+    if (!restroom.name || !restroom.address || !restroom.latitude || !restroom.longitude || !restroom.created_by) {
+      throw new Error('Missing required fields: name, address, location, or user ID');
+    }
+    
     const { data, error } = await supabase
       .from('restrooms')
       .insert(restroom)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating restroom:', error);
+      throw error;
+    }
+    
+    console.log('Restroom created successfully:', data);
     return data;
   },
 
   async updateRestroom(id: string, updates: Partial<RestroomInsert>) {
+    console.log('Updating restroom:', id, updates);
+    
     const { data, error } = await supabase
       .from('restrooms')
       .update(updates)
@@ -62,10 +82,13 @@ export const restroomService = {
       .single();
 
     if (error) throw error;
+    console.log('Restroom updated:', data);
     return data;
   },
 
   async createReview(review: ReviewInsert) {
+    console.log('Creating review:', review);
+    
     const { data, error } = await supabase
       .from('reviews')
       .insert(review)
@@ -73,10 +96,13 @@ export const restroomService = {
       .single();
 
     if (error) throw error;
+    console.log('Review created:', data);
     return data;
   },
 
   async getReviews(restroomId: string) {
+    console.log('Getting reviews for restroom:', restroomId);
+    
     const { data, error } = await supabase
       .from('reviews')
       .select(`
@@ -87,10 +113,13 @@ export const restroomService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
+    console.log('Found reviews:', data?.length || 0);
     return data;
   },
 
   async reportRestroom(restroomId: string, userId: string, reportType: string, description: string) {
+    console.log('Creating report:', { restroomId, userId, reportType, description });
+    
     const { data, error } = await supabase
       .from('reports')
       .insert({
@@ -103,6 +132,7 @@ export const restroomService = {
       .single();
 
     if (error) throw error;
+    console.log('Report created:', data);
     return data;
   },
 };

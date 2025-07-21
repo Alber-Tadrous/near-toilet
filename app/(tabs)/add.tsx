@@ -15,7 +15,7 @@ import {
 import * as Location from 'expo-location';
 import { useAuth } from '@/context/AuthContext';
 import { restroomService } from '@/lib/restrooms';
-import { MapPin, Clock, Info, Accessibility, Camera, Check, Plus } from 'lucide-react-native';
+import { MapPin, Clock, Info, Accessibility, Camera, Check, Plus, AlertCircle, X } from 'lucide-react-native';
 
 const ACCESSIBILITY_FEATURES = [
   'Wheelchair Accessible',
@@ -29,6 +29,8 @@ const ACCESSIBILITY_FEATURES = [
 export default function AddRestroomScreen() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -40,10 +42,11 @@ export default function AddRestroomScreen() {
   const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
 
   const getCurrentLocation = async () => {
+    setError('');
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required');
+        setError('Location permission is required to add a restroom');
         return;
       }
 
@@ -62,7 +65,7 @@ export default function AddRestroomScreen() {
       }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('Error', 'Failed to get your location');
+      setError('Failed to get your location. Please try again or enter the address manually.');
     }
   };
 
@@ -76,24 +79,41 @@ export default function AddRestroomScreen() {
   };
 
   const handleSubmit = async () => {
+    setError('');
+    setSuccess('');
+    
+    // Validation
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Please enter a name for the restroom');
+      setError('Please enter a name for the restroom');
       return;
     }
 
     if (!formData.address.trim()) {
-      Alert.alert('Error', 'Please enter an address');
+      setError('Please enter an address for the restroom');
       return;
     }
 
     if (!currentLocation) {
-      Alert.alert('Error', 'Please get your current location first');
+      setError('Please get your current location first by tapping the location button');
       return;
     }
 
+    if (!user) {
+      setError('You must be logged in to add a restroom');
+      return;
+    }
+
+    console.log('Adding restroom with data:', {
+      name: formData.name,
+      address: formData.address,
+      latitude: currentLocation.coords.latitude,
+      longitude: currentLocation.coords.longitude,
+      created_by: user.id,
+    });
+
     setLoading(true);
     try {
-      await restroomService.createRestroom({
+      const newRestroom = await restroomService.createRestroom({
         name: formData.name,
         address: formData.address,
         description: formData.description || null,
@@ -106,29 +126,53 @@ export default function AddRestroomScreen() {
         status: 'pending_review',
       });
 
-      Alert.alert('Success', 'Restroom added successfully! It will be reviewed before appearing on the map.', [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Reset form
-            setFormData({
-              name: '',
-              address: '',
-              description: '',
-              operating_hours: '',
-              access_requirements: '',
-              accessibility_features: [],
-            });
-            setCurrentLocation(null);
-          }
-        }
-      ]);
+      console.log('Restroom created successfully:', newRestroom);
+      
+      setSuccess('Restroom added successfully! It will be reviewed before appearing on the map.');
+      
+      // Reset form after a delay
+      setTimeout(() => {
+        setFormData({
+          name: '',
+          address: '',
+          description: '',
+          operating_hours: '',
+          access_requirements: '',
+          accessibility_features: [],
+        });
+        setCurrentLocation(null);
+        setSuccess('');
+      }, 3000);
+      
     } catch (error) {
       console.error('Error adding restroom:', error);
-      Alert.alert('Error', 'Failed to add restroom');
+      
+      let errorMessage = 'Failed to add restroom. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          errorMessage = 'You don\'t have permission to add restrooms. Please check your account status.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('validation')) {
+          errorMessage = 'Please check all required fields and try again.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const dismissError = () => {
+    setError('');
+  };
+
+  const dismissSuccess = () => {
+    setSuccess('');
   };
 
   const AccessibilityFeatureItem = ({ feature }: { feature: string }) => {
@@ -165,6 +209,38 @@ export default function AddRestroomScreen() {
       </View>
 
       <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+        {/* Success Message */}
+        {success ? (
+          <View style={styles.successContainer}>
+            <View style={styles.successIconContainer}>
+              <Check size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.successContent}>
+              <Text style={styles.successTitle}>Success!</Text>
+              <Text style={styles.successText}>{success}</Text>
+            </View>
+            <TouchableOpacity onPress={dismissSuccess} style={styles.successDismiss}>
+              <X size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {/* Error Message */}
+        {error ? (
+          <View style={styles.errorContainer}>
+            <View style={styles.errorIconContainer}>
+              <AlertCircle size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.errorContent}>
+              <Text style={styles.errorTitle}>Error</Text>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+            <TouchableOpacity onPress={dismissError} style={styles.errorDismiss}>
+              <X size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <Image
@@ -545,5 +621,99 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 100,
+  },
+  errorContainer: {
+    backgroundColor: '#EF4444',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  errorIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  errorContent: {
+    flex: 1,
+  },
+  errorTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+    letterSpacing: -0.2,
+  },
+  errorText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  errorDismiss: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  successContainer: {
+    backgroundColor: '#059669',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  successIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  successContent: {
+    flex: 1,
+  },
+  successTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+    letterSpacing: -0.2,
+  },
+  successText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  successDismiss: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
 });
