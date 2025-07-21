@@ -15,7 +15,9 @@ import {
 import * as Location from 'expo-location';
 import { useAuth } from '@/context/AuthContext';
 import { restroomService } from '@/lib/restrooms';
-import { MapPin, Clock, Info, Accessibility, Camera, Check, Plus, CircleAlert as AlertCircle, X } from 'lucide-react-native'BILITY_FEATURES = [
+import { MapPin, Clock, Info, Accessibility, Camera, Check, Plus, CircleAlert as AlertCircle, X } from 'lucide-react-native';
+
+const ACCESSIBILITY_FEATURES = [
   'Wheelchair Accessible',
   'Baby Changing Station',
   'Grab Bars',
