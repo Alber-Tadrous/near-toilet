@@ -87,12 +87,15 @@ export default function LoginScreen() {
           {/* Error Message */}
           {error ? (
             <View style={styles.errorContainer}>
+              <View style={styles.errorIconContainer}>
+                <AlertCircle size={24} color="#FFFFFF" />
+              </View>
               <View style={styles.errorContent}>
-                <AlertCircle size={20} color="#EF4444" />
+                <Text style={styles.errorTitle}>Authentication Error</Text>
                 <Text style={styles.errorText}>{error}</Text>
               </View>
               <TouchableOpacity onPress={dismissError} style={styles.errorDismiss}>
-                <X size={16} color="#EF4444" />
+                <X size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           ) : null}
