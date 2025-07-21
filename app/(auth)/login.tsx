@@ -13,18 +13,21 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, X } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const { signIn } = useAuth();
 
   const handleLogin = async () => {
+    setError('');
+    
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
 
@@ -33,10 +36,26 @@ export default function LoginScreen() {
       await signIn(email, password);
       router.replace('/(tabs)');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign in');
+      let errorMessage = 'Failed to sign in';
+      
+      if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and confirm your account before signing in.';
+      } else if (error.message?.includes('Too many requests')) {
+        errorMessage = 'Too many login attempts. Please wait a moment and try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const dismissError = () => {
+    setError('');
   };
 
   return (
@@ -65,6 +84,19 @@ export default function LoginScreen() {
       {/* Form Section */}
       <View style={styles.formSection}>
         <View style={styles.form}>
+          {/* Error Message */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <View style={styles.errorContent}>
+                <AlertCircle size={20} color="#EF4444" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+              <TouchableOpacity onPress={dismissError} style={styles.errorDismiss}>
+                <X size={16} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
               <Mail size={20} color="#6B7280" style={styles.inputIcon} />
@@ -263,5 +295,32 @@ const styles = StyleSheet.create({
   linkTextBold: {
     color: '#2563EB',
     fontWeight: '600',
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 12,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
+  errorDismiss: {
+    padding: 4,
+    marginLeft: 8,
   },
 });

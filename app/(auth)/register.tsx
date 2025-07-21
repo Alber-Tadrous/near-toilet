@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react-native';
+import { UserPlus, Mail, Lock, User, Eye, EyeOff, AlertCircle, X, CheckCircle } from 'lucide-react-native';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -21,30 +21,58 @@ export default function RegisterScreen() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const { signUp } = useAuth();
 
   const handleRegister = async () => {
+    setError('');
+    setSuccess('');
+    
     if (!email || !password || !username) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      setError('Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
     try {
       await signUp(email, password, username);
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
+      setSuccess('Account created successfully! Welcome to the community.');
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 2000);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create account');
+      let errorMessage = 'Failed to create account';
+      
+      if (error.message?.includes('User already registered')) {
+        errorMessage = 'An account with this email already exists. Try signing in instead.';
+      } else if (error.message?.includes('Invalid email')) {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (error.message?.includes('Password should be at least')) {
+        errorMessage = 'Password must be at least 6 characters long.';
+      } else if (error.message?.includes('Username')) {
+        errorMessage = 'This username is already taken. Please choose another one.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const dismissError = () => {
+    setError('');
+  };
+
+  const dismissSuccess = () => {
+    setSuccess('');
   };
 
   return (
@@ -73,6 +101,32 @@ export default function RegisterScreen() {
       {/* Form Section */}
       <View style={styles.formSection}>
         <View style={styles.form}>
+          {/* Success Message */}
+          {success ? (
+            <View style={styles.successContainer}>
+              <View style={styles.successContent}>
+                <CheckCircle size={20} color="#059669" />
+                <Text style={styles.successText}>{success}</Text>
+              </View>
+              <TouchableOpacity onPress={dismissSuccess} style={styles.successDismiss}>
+                <X size={16} color="#059669" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {/* Error Message */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <View style={styles.errorContent}>
+                <AlertCircle size={20} color="#EF4444" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+              <TouchableOpacity onPress={dismissError} style={styles.errorDismiss}>
+                <X size={16} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
               <User size={20} color="#6B7280" style={styles.inputIcon} />
@@ -286,5 +340,59 @@ const styles = StyleSheet.create({
   linkTextBold: {
     color: '#059669',
     fontWeight: '600',
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 12,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
+  errorDismiss: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  successContainer: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  successContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 12,
+  },
+  successText: {
+    color: '#059669',
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
+  successDismiss: {
+    padding: 4,
+    marginLeft: 8,
   },
 });
