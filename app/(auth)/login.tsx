@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, X } from 'lucide-react-native';
+import { LogIn, Mail, Lock, Eye, EyeOff, CircleAlert as AlertCircle, X } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -295,32 +295,5 @@ const styles = StyleSheet.create({
   linkTextBold: {
     color: '#2563EB',
     fontWeight: '600',
-  },
-  errorContainer: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  errorContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-    gap: 12,
-  },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 14,
-    lineHeight: 20,
-    flex: 1,
-  },
-  errorDismiss: {
-    padding: 4,
-    marginLeft: 8,
   },
 });
