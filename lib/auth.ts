@@ -8,64 +8,101 @@ export interface AuthUser {
 
 export const authService = {
   async signUp(email: string, password: string, username: string) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+          },
         },
-      },
-    });
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Create user profile
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: data.user.id,
-          email,
-          username,
-        });
+      // Create user profile
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email,
+            username,
+          });
 
-      if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw profileError;
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Sign up error:', error);
+      throw error;
     }
-
-    return data;
   },
 
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   },
 
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    }
   },
 
   async getCurrentUser(): Promise<AuthUser | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) return null;
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Get user error:', error);
+        return null;
+      }
+      
+      if (!user) return null;
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('username')
-      .eq('id', user.id)
-      .single();
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', user.id)
+        .single();
 
-    return {
-      id: user.id,
-      email: user.email!,
-      username: profile?.username,
-    };
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        // Return user without profile data if profile fetch fails
+        return {
+          id: user.id,
+          email: user.email!,
+          username: undefined,
+        };
+      }
+      return {
+        id: user.id,
+        email: user.email!,
+        username: profile?.username,
+      };
+    } catch (error) {
+      console.error('Get current user error:', error);
+      return null;
+    }
   },
 };
