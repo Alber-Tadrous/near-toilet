@@ -8,6 +8,11 @@ import { MapImplementation } from './MapImplementation';
 
 const MapComponent = forwardRef<MapRef, MapProps>((props, ref) => {
   const { isLoading, error } = useMapContext();
+  
+  // Debug log for markers
+  React.useEffect(() => {
+    console.log('Map markers updated:', props.markers?.length || 0, props.markers);
+  }, [props.markers]);
 
   return (
     <View style={[styles.container, props.style]}>

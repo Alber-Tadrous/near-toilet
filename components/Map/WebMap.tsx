@@ -209,6 +209,11 @@ export const WebMap = forwardRef<MapRef, MapProps>(({
   
   const defaultZoom = region ? getZoomFromDelta(region.latitudeDelta) : 13;
 
+  // Debug log for markers
+  useEffect(() => {
+    console.log('WebMap markers:', markers?.length || 0, markers);
+  }, [markers]);
+
   const getTileLayerUrl = () => {
     switch (mapType) {
       case 'satellite':

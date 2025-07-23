@@ -53,8 +53,10 @@ export default function MapScreen() {
 
   const getCurrentLocation = async () => {
     try {
+      console.log('Requesting location permissions...');
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        console.log('Location permission denied');
         if (Platform.OS !== 'web') {
           Alert.alert('Permission denied', 'Location permission is required to show nearby restrooms');
         } else {
@@ -63,7 +65,9 @@ export default function MapScreen() {
         return;
       }
 
+      console.log('Getting current position...');
       const currentLocation = await Location.getCurrentPositionAsync({});
+      console.log('Current location:', currentLocation.coords);
       setLocation(currentLocation);
 
       const newRegion: MapRegion = {
@@ -72,6 +76,7 @@ export default function MapScreen() {
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       };
+      console.log('Setting map region:', newRegion);
       setMapRegion(newRegion);
 
       await loadNearbyRestrooms(currentLocation.coords.latitude, currentLocation.coords.longitude);
@@ -84,9 +89,12 @@ export default function MapScreen() {
   };
 
   const loadNearbyRestrooms = async (latitude: number, longitude: number) => {
+    console.log('Loading nearby restrooms for:', { latitude, longitude });
     setLoading(true);
     try {
-      const nearbyRestrooms = await restroomService.getNearbyRestrooms(latitude, longitude, 5000);
+      // Increase search radius to 10km for better results
+      const nearbyRestrooms = await restroomService.getNearbyRestrooms(latitude, longitude, 10000);
+      console.log('Found restrooms:', nearbyRestrooms?.length || 0, nearbyRestrooms);
       setRestrooms(nearbyRestrooms || []);
     } catch (error) {
       console.error('Error loading restrooms:', error);
@@ -147,6 +155,16 @@ export default function MapScreen() {
     title: restroom.name,
     description: restroom.address,
   }));
+  
+  // Debug log for markers conversion
+  useEffect(() => {
+    console.log('Converting restrooms to markers:', {
+      restroomsCount: restrooms.length,
+      markersCount: markers.length,
+      restrooms: restrooms.map(r => ({ id: r.id, name: r.name, lat: r.latitude, lng: r.longitude })),
+      markers: markers.map(m => ({ id: m.id, title: m.title, lat: m.coordinate.latitude, lng: m.coordinate.longitude }))
+    });
+  }, [restrooms, markers]);
 
   return (
     <View style={styles.container}>

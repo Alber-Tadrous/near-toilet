@@ -10,16 +10,50 @@ export const restroomService = {
   async getNearbyRestrooms(latitude: number, longitude: number, radius: number = 5000) {
     console.log('Getting nearby restrooms:', { latitude, longitude, radius });
     
-    const { data, error } = await supabase
-      .rpc('get_nearby_restrooms', {
-        lat: latitude,
-        lng: longitude,
-        radius_meters: radius,
-      });
+    try {
+      // First, let's try the RPC function
+      const { data, error } = await supabase
+        .rpc('get_nearby_restrooms', {
+          lat: latitude,
+          lng: longitude,
+          radius_meters: radius,
+        });
 
-    if (error) throw error;
-    console.log('Found restrooms:', data?.length || 0);
-    return data as Restroom[];
+      if (error) {
+        console.error('RPC function error:', error);
+        // Fallback to simple query if RPC fails
+        console.log('Falling back to simple query...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('restrooms')
+          .select('*')
+          .eq('status', 'active');
+        
+        if (fallbackError) throw fallbackError;
+        console.log('Fallback query found restrooms:', fallbackData?.length || 0);
+        return fallbackData as Restroom[];
+      }
+      
+      console.log('Found restrooms via RPC:', data?.length || 0);
+      return data as Restroom[];
+    } catch (error) {
+      console.error('Error in getNearbyRestrooms:', error);
+      
+      // Final fallback - get all active restrooms
+      console.log('Using final fallback - getting all active restrooms...');
+      const { data: allData, error: allError } = await supabase
+        .from('restrooms')
+        .select('*')
+        .eq('status', 'active')
+        .limit(50);
+      
+      if (allError) {
+        console.error('Final fallback error:', allError);
+        throw allError;
+      }
+      
+      console.log('Final fallback found restrooms:', allData?.length || 0);
+      return allData as Restroom[];
+    }
   },
 
   async getRestroom(id: string) {

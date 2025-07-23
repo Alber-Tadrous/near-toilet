@@ -49,6 +49,11 @@ export const NativeMap = forwardRef<MapRef, MapProps>(({
   const { setError, clearError } = useMapContext();
   const mapRef = useRef<any>(null);
 
+  // Debug log for markers
+  useEffect(() => {
+    console.log('NativeMap markers:', markers?.length || 0, markers);
+  }, [markers]);
+
   useEffect(() => {
     if (!MapView) {
       setError({
