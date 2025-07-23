@@ -11,7 +11,25 @@ export const restroomService = {
     console.log('Getting nearby restrooms:', { latitude, longitude, radius });
     
     try {
+      // First, let's check if we have any restrooms at all
+      const { data: allRestrooms, error: countError } = await supabase
+        .from('restrooms')
+        .select('id, name, latitude, longitude, status')
+        .limit(10);
+      
+      console.log('Total restrooms in database:', allRestrooms?.length || 0);
+      if (allRestrooms && allRestrooms.length > 0) {
+        console.log('Sample restrooms:', allRestrooms.map(r => ({
+          id: r.id,
+          name: r.name,
+          status: r.status,
+          lat: r.latitude,
+          lng: r.longitude
+        })));
+      }
+      
       // First, let's try the RPC function
+      console.log('Trying RPC function get_nearby_restrooms...');
       const { data, error } = await supabase
         .rpc('get_nearby_restrooms', {
           lat: latitude,
@@ -26,10 +44,30 @@ export const restroomService = {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('restrooms')
           .select('*')
-          .eq('status', 'active');
+          .in('status', ['active', 'pending_review']); // Include pending reviews for testing
         
         if (fallbackError) throw fallbackError;
         console.log('Fallback query found restrooms:', fallbackData?.length || 0);
+        
+        // Calculate distances manually for fallback
+        if (fallbackData && fallbackData.length > 0) {
+          const restroomsWithDistance = fallbackData.map(restroom => {
+            const distance = this.calculateDistance(
+              latitude, longitude, 
+              restroom.latitude, restroom.longitude
+            );
+            return { ...restroom, distance };
+          });
+          
+          // Filter by radius and sort by distance
+          const nearbyRestrooms = restroomsWithDistance
+            .filter(r => r.distance <= radius / 1000) // Convert meters to km
+            .sort((a, b) => a.distance - b.distance);
+          
+          console.log('Filtered nearby restrooms:', nearbyRestrooms.length);
+          return nearbyRestrooms as Restroom[];
+        }
+        
         return fallbackData as Restroom[];
       }
       
@@ -43,7 +81,7 @@ export const restroomService = {
       const { data: allData, error: allError } = await supabase
         .from('restrooms')
         .select('*')
-        .eq('status', 'active')
+        .in('status', ['active', 'pending_review']) // Include pending for testing
         .limit(50);
       
       if (allError) {
@@ -56,6 +94,18 @@ export const restroomService = {
     }
   },
 
+  // Helper method to calculate distance
+  calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  },
   async getRestroom(id: string) {
     console.log('Getting restroom:', id);
     

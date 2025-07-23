@@ -38,6 +38,7 @@ export default function MapScreen() {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+  const [debugInfo, setDebugInfo] = useState<string>('Initializing...');
 
   useEffect(() => {
     getCurrentLocation();
@@ -53,21 +54,27 @@ export default function MapScreen() {
 
   const getCurrentLocation = async () => {
     try {
+      setDebugInfo('Requesting location permissions...');
       console.log('Requesting location permissions...');
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        setDebugInfo('Location permission denied');
         console.log('Location permission denied');
         if (Platform.OS !== 'web') {
           Alert.alert('Permission denied', 'Location permission is required to show nearby restrooms');
         } else {
           console.warn('Location permission denied');
         }
+        // Load sample data even without location
+        await loadNearbyRestrooms(37.78825, -122.4324);
         return;
       }
 
+      setDebugInfo('Getting current position...');
       console.log('Getting current position...');
       const currentLocation = await Location.getCurrentPositionAsync({});
       console.log('Current location:', currentLocation.coords);
+      setDebugInfo(`Location: ${currentLocation.coords.latitude.toFixed(4)}, ${currentLocation.coords.longitude.toFixed(4)}`);
       setLocation(currentLocation);
 
       const newRegion: MapRegion = {
@@ -82,28 +89,56 @@ export default function MapScreen() {
       await loadNearbyRestrooms(currentLocation.coords.latitude, currentLocation.coords.longitude);
     } catch (error) {
       console.error('Error getting location:', error);
+      setDebugInfo(`Location error: ${error.message || 'Unknown error'}`);
       if (Platform.OS !== 'web') {
         Alert.alert('Error', 'Failed to get your location');
       }
+      // Fallback to San Francisco coordinates
+      await loadNearbyRestrooms(37.78825, -122.4324);
     }
   };
 
   const loadNearbyRestrooms = async (latitude: number, longitude: number) => {
     console.log('Loading nearby restrooms for:', { latitude, longitude });
+    setDebugInfo(`Searching for restrooms near ${latitude.toFixed(4)}, ${longitude.toFixed(4)}...`);
     setLoading(true);
     try {
       // Increase search radius to 10km for better results
       const nearbyRestrooms = await restroomService.getNearbyRestrooms(latitude, longitude, 10000);
       console.log('Found restrooms:', nearbyRestrooms?.length || 0, nearbyRestrooms);
+      setDebugInfo(`Found ${nearbyRestrooms?.length || 0} restrooms in database`);
       setRestrooms(nearbyRestrooms || []);
+      
+      // Additional debug info
+      if (nearbyRestrooms && nearbyRestrooms.length > 0) {
+        const distances = nearbyRestrooms.map(r => {
+          const distance = calculateDistance(latitude, longitude, r.latitude, r.longitude);
+          return `${r.name}: ${distance.toFixed(2)}km`;
+        });
+        console.log('Restroom distances:', distances);
+      }
     } catch (error) {
       console.error('Error loading restrooms:', error);
+      setDebugInfo(`Database error: ${error.message || 'Failed to load restrooms'}`);
       if (Platform.OS !== 'web') {
         Alert.alert('Error', 'Failed to load nearby restrooms');
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to calculate distance between two points
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   };
 
   const handleRefresh = () => {
@@ -164,6 +199,7 @@ export default function MapScreen() {
       restrooms: restrooms.map(r => ({ id: r.id, name: r.name, lat: r.latitude, lng: r.longitude })),
       markers: markers.map(m => ({ id: m.id, title: m.title, lat: m.coordinate.latitude, lng: m.coordinate.longitude }))
     });
+    setDebugInfo(`Displaying ${markers.length} markers on map`);
   }, [restrooms, markers]);
 
   return (
@@ -257,9 +293,21 @@ export default function MapScreen() {
           <View style={styles.webStatusContent}>
             <MapPin size={16} color="#2563EB" />
             <Text style={styles.webStatusText}>
-              {restrooms.length} restrooms found
+              {debugInfo}
             </Text>
           </View>
+        </View>
+      )}
+      
+      {/* Debug panel for development */}
+      {__DEV__ && (
+        <View style={styles.debugPanel}>
+          <Text style={styles.debugText}>Debug Info:</Text>
+          <Text style={styles.debugText}>• {debugInfo}</Text>
+          <Text style={styles.debugText}>• Restrooms: {restrooms.length}</Text>
+          <Text style={styles.debugText}>• Markers: {markers.length}</Text>
+          <Text style={styles.debugText}>• Location: {location ? 'Available' : 'Not available'}</Text>
+          <Text style={styles.debugText}>• Map Region: {mapRegion.latitude.toFixed(4)}, {mapRegion.longitude.toFixed(4)}</Text>
         </View>
       )}
     </View>
@@ -416,5 +464,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374751',
     fontWeight: '500',
+  },
+  debugPanel: {
+    position: 'absolute',
+    bottom: 200,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 8,
+    padding: 12,
+    maxHeight: 150,
+  },
+  debugText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginBottom: 2,
   },
 });

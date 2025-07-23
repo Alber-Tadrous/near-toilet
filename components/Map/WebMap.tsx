@@ -153,6 +153,14 @@ export const WebMap = forwardRef<MapRef, MapProps>(({
   // Debug log for markers - always called
   useEffect(() => {
     console.log('WebMap markers:', markers?.length || 0, markers);
+    if (markers && markers.length > 0) {
+      console.log('WebMap marker details:', markers.map(m => ({
+        id: m.id,
+        title: m.title,
+        lat: m.coordinate.latitude,
+        lng: m.coordinate.longitude
+      })));
+    }
   }, [markers]);
   useImperativeHandle(ref, () => ({
     animateToRegion: (region: MapRegion, duration = 1000) => {

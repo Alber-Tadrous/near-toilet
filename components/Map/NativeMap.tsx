@@ -52,6 +52,14 @@ export const NativeMap = forwardRef<MapRef, MapProps>(({
   // Debug log for markers
   useEffect(() => {
     console.log('NativeMap markers:', markers?.length || 0, markers);
+    if (markers && markers.length > 0) {
+      console.log('NativeMap marker details:', markers.map(m => ({
+        id: m.id,
+        title: m.title,
+        lat: m.coordinate.latitude,
+        lng: m.coordinate.longitude
+      })));
+    }
   }, [markers]);
 
   useEffect(() => {
