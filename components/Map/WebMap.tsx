@@ -10,6 +10,7 @@ let Marker: any;
 let Popup: any;
 let useMap: any;
 let useMapEvents: any;
+let isLeafletAvailable = false;
 
 // Leaflet CSS and icon setup
 if (typeof window !== 'undefined') {
@@ -32,8 +33,10 @@ if (typeof window !== 'undefined') {
     Popup = reactLeaflet.Popup;
     useMap = reactLeaflet.useMap;
     useMapEvents = reactLeaflet.useMapEvents;
+    isLeafletAvailable = true;
   } catch (error) {
     console.warn('Leaflet not available:', error);
+    isLeafletAvailable = false;
   }
 }
 
@@ -129,19 +132,28 @@ export const WebMap = forwardRef<MapRef, MapProps>(({
   const { setError, clearError, setLoading } = useMapContext();
   const mapRef = useRef<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [leafletReady, setLeafletReady] = useState(isLeafletAvailable);
 
+  // CRITICAL: All hooks must be called in the same order every render
+  // This useEffect must always be called, regardless of conditions
   useEffect(() => {
     setIsClient(true);
-    if (!MapContainer) {
+    if (!isLeafletAvailable || !MapContainer) {
       setError({
         code: 'LEAFLET_NOT_AVAILABLE',
         message: 'Leaflet map library is not available',
       });
+      setLeafletReady(false);
     } else {
       clearError();
+      setLeafletReady(true);
     }
   }, [setError, clearError]);
 
+  // Debug log for markers - always called
+  useEffect(() => {
+    console.log('WebMap markers:', markers?.length || 0, markers);
+  }, [markers]);
   useImperativeHandle(ref, () => ({
     animateToRegion: (region: MapRegion, duration = 1000) => {
       if (mapRef.current) {
@@ -195,7 +207,8 @@ export const WebMap = forwardRef<MapRef, MapProps>(({
     },
   }));
 
-  if (!isClient || !MapContainer) {
+  // Render fallback if not ready - but hooks above are always called
+  if (!isClient || !leafletReady || !MapContainer) {
     return (
       <View style={[styles.fallbackContainer, style]}>
         <Text style={styles.fallbackText}>Loading map...</Text>
@@ -209,10 +222,6 @@ export const WebMap = forwardRef<MapRef, MapProps>(({
   
   const defaultZoom = region ? getZoomFromDelta(region.latitudeDelta) : 13;
 
-  // Debug log for markers
-  useEffect(() => {
-    console.log('WebMap markers:', markers?.length || 0, markers);
-  }, [markers]);
 
   const getTileLayerUrl = () => {
     switch (mapType) {
